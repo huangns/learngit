@@ -49,4 +49,7 @@ Git的版本库里存了很多东西，其中最重要的就是称为stage（或
 git diff HEAD -- readme.txt
 git diff HEAD^ -- readme.txt
 
+/************************/
+Git track and manage the change, not file.
+每次修改，如果不用git add到暂存区，那就不会加入到commit中
 
