@@ -1,3 +1,7 @@
+/********* 0 introduction **********/
+Git is a distributed version control system.
+Git is free software distributed under the GPL.
+
 1. mkdir xxx
 2.cd xxx
 3.git init, ls -a, there is .git file.
