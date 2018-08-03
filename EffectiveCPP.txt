@@ -1,0 +1,1019 @@
+/**指针和引用的区别**/
+1.传递指针通常要判断是否为空指针,而ref只要被建立就一定要初始化,所以在调用函数的时候,不需要去判断.
+
+
+
+两种初始化方式:构造函数语法 int num(0);
+assignment运算符初始化方法,这个操作沿袭C语言而来,如果对象属于内建类型,或者对象可以单一值加以初始化,这种方式就没有问题,但是如果对象需要多个初始值,这种方式就没有办法完成任务了.
+
+vector 初始化
+vector<int> v(10);
+v[0]=,,
+v[1]=**
+...
+另一种则是利用一个已初始化的array作为vector的初值
+int elem_vals[10]={*,*,....};
+vector<int> elem_seq{elem_vals,elem_vals+10};
+
+指针的默认初始化值为null 0
+int* pi=0;
+为了防止对null指针进行取指操作,可以检验该指针所含有的地址是否为0,例如
+if(pi&&*pi!=1024) *pi=1024;
+
+vector<int>* seq_addrs[2]={&fibonacci,&lucas};
+
+#include <cstdlib>
+srand(seq_cnt);
+srand(seq_cnt);
+seq_index=rand()%seq_cnt;
+
+rand()和srand()都是标准程序库提供的所谓伪随机数产生器,srand()的参数是所谓随机数产生器种子.每次调用rand()都会返回一个介于0和int所能表示之最大整数之间的一个整数,将随机数产生器的种子设置为5,我们就可以将rand()的返回值限制在0-5之间.
+cerr 和cout的唯一差别在于,cerr的输出结果并无缓冲,会立即显示在用户终端机上.
+endl,hex,oct这些是操控器manipulator,由iostream library提供,操控器不会将数据写到iostream,也不会从中读取数据,其作用是在iostream上执行某些操作.endl会插入一个换行字符,并清除输出缓冲区的内容.
+如果想要同时读写同一个文件,需要定义一个fstream对象,为了以追加模式开始,得传入二个参数值
+fstream iofile("file.txt", ios_base::in|ios_base::app) //是fstream 不是ofstream 或 ifstream
+if(!iofile) //文件无法开启
+
+iofile.seekg(0);//开始读取之前,将文件重新定位至起始处
+以app模式开启文件的时候,文件位置会位于尾端,如果没有重新定位,就试着读取文件内容,那么立刻就会遇上"读到文件末的"的状况,seekg()可以将文件位置重新定位至文件的起始处.由于此文件是以追加模式开启的,因此,任何写入操作
+都会将数据附加于文件最末端.
+
+泛型算法通过函数模板技术,达成与操作对象之类型相互独立的目的,而达成与容器类型无关的,就是不直接在容器身上进行操作.
+
+当数组被传给函数,或是由函数中返回的时候,仅有第一个元素的地址会被传递. int min(int* array)
+
+template<typename elemtype>//解决了元素类型的问题
+elemtype* find(const elemType *array, const elemtype* sentinel, const elemtype& value);//指针解决了容器类型的问题,只要该容器支持指针运算,如加减,dereference等.
+
+template<typename elemType>
+elemType* find(const elemType* first, const elemType* last, const elemType& value)
+{
+	if(!first||!last)
+		return 0;
+	
+	for(;first!=last;++first)
+	{
+		if(*first==value) return first;
+	}
+	return 0;
+}
+
+template<typename elemType>
+inline elemType* begin(const vector<elemType>& vec)
+{
+	return vec.empty()?0:&vec[0];
+}
+
+find(begin(svec),end(svec), search_value);
+
+
+
+而对于list,因为所有的元素不是存储在连续空间里面,所以不能根据当前的指针,加上元素大小之后,指向下一个元素.而这是之前find()的实现之中最基本的假设.
+解决这个问题的方法是,在底层指针的行为之上提供一层抽象化机制,取代程序原本的"指针直接操作"方式,我们把底层指针的处理通通置于此抽象层中,让用户不需要直接面对指针的操作.
+这个技巧使得我们只需要提供一份find()函数,便可以处理标准程序库所提供的所有容器类.
+所以需要一组对象,可以提供有如内建运算符(++,*=,==,!=))一般的运算符,并允许我们只为这些运算符提供一份实现码即可,我们可以利用C++的类机制来完成目的.这些运算符乃是由iterator classes 内相关的inline函数提供.
+对于list iterator而言,其递增函数会沿着list的指针前进到下一个元素.对vector iterator 而言,其递增函数前进至下一个元素的方式,是将当前的地址加上一个元素的大小.(即这些实现是由每个容器类内实现的)
+
+template<typename IteratorType, typename elemType>
+IteratorType find(IteratorType first, IteratorType last, const elemType& value)
+{
+	for(;first!=last;++first) //迭代器需要支持的操作:!=,++,==,*,...
+	{
+		if(value==*first)
+			return first;
+	}
+	return last;//
+}
+
+find 内容实现了底部元素所属类型的equality()运算符,如果底部元素所属类型并未提供这个运算符,或如果用户希望赋予equality运算符不同的意义,这个find()的弹性便不足了.
+解法之一:传入函数指针,取代原本固定使用的equality()运算符,解法2:运用所谓的function object,这是一种特殊的class , operator()
+find函数内部已经规定了判断元素相等使用的是==这个运算符号,所以要使用函数指针或者function object,
+标准程序库提供的find_if()能够接受函数指针或function object,取代底部元素的equality运算符,大大提升弹性.
+
+所有容器的共同操作:
+==,!=,=,empty(),size(),clear()删除所有元素
+每个容器都提供begin(),和end()两个函数,分别返回iterator,指向容器的第一个元素和最后一个元素的下一个位置.
+所有容器都提供insert()用于安插元素,以及提供erase()用于删除元素.insert(0将单一或某一个范围内的元素安插到容器内.
+erase()将容器内的单一元素或某一个范围内的元素删除.
+insert()和erase()的行为视容器本身为序列式还是关联式而有所不同.
+
+list是以双向链接来存储内容,因此可以执行前进或是后退操作.
+list中的每一个元素都都包含3个字段,value,back()指针,front指针,指向下一个元素.
+vector适合随机存取操作,但不适合任意位置元素的安插或删除操作,list则相反.
+如果想要从文件中读取分数,并希望由低到高地加以排序存储,那么,每当我们读入一个分数的时候,便可能将它随机安插到容器内,这种情况下list比较恰当.
+deque都已连续内存存储元素,deque对于最前端元素的安插和删除操作效率更高,末端元素亦同.如果需要在容器最前端安插元素,并执行末端删除操作,那么deque便很理想.
+产生特定大小的容器,并为每个元素指定初值.
+vector<int> ivec(10,-1);!!!!!!!!!!!!!!!
+int ia[8]={...}
+vector<int> fib(ia,ia+8);
+根据某个容器 产生新的容器,复制原容器内的元素,作为新容器的初值.
+list<string> slist;
+list<string> slist2(slist);
+
+push_back(),pop_back() vector,list,deque都支持
+pop_front(),push_front() list,deque支持
+如果要读取最前端元素的值,采用front(), 如果要读取最末端元素的值,应该采用back()
+push_back(),push_front()都属于特殊化的insert操作.每个容器除了拥有通用的insert()外,支持4种变形.
+
+iterator insert(iterator position, elemType value) 可以将value安插于position之前,他会返回一个iterator,指向被安插的元素.
+以下程序代码将会将ival插入ilist内,并维持其递增次序.
+list<int> ilist;
+list<int>::iterator it=ilist.begin();
+while(it!=ilist.end())
+{
+	if(*it>=ival)
+	{
+		ilist.insert(it,ival);break;
+	}
+	++it;
+	if(it==ilist.end())
+	{
+		ilist.push_back(ival);
+	}
+}
+
+void insert(iterator position, int count, elemType value)//可以在position之前安插count个元素,这些元素皆和value相同.
+void insert(iterator position, iterator first, iterator last);可以杂position之前安插[first, last)所标示的各个元素.
+iterator insert(iterator position);可以在position之前插入元素,此元素的初值为其所属类型的默认值.
+
+pop_front() pop_back()都是属于特殊化的erase操作.每个容器除了拥有通用的erase()外,还支持两种变形.
+iterator erase(iterator position) 可以抹除position所指向的元素.
+iterator erase(iterator first,iterator last) //Erases the sequence of characters in the range [first,last). 返回迭代器指向最后一个被删除元素的下一个位置.
+
+find()用于搜索无序集合中是否存在某一个值[first,last)
+binary_search()用于搜索已排序集合, binary_search更有效率
+count()返回数值相符的元素数目
+search()比较某个容器内是否存在某个子序列,如果存在,则返回一个iterator,指向子序列起始处,如果不存在,指向容器末尾.
+
+max_element()将一对iterators传给max_element(),它就会返回该区间内的最大值.
+
+vector<int> temp(vec.size());
+copy(vec.begin(), vec.end(), temp.begin());
+
+vector<int> filter(const vector<int>& vec, int filter_value, bool(*pred)(int,int));
+
+while( (iter=find(iter,vec.end(), val))!=vec.end() )
+{
+	++occurs_count;
+	++iter;
+}
+
+Function Objects:是某种class的实体对象,这类classes对function call运算符进行了重载操作,如此一来,可以使function object被当成一般函数来使用.
+可以令call运算符称为inline,因而消除 "通过函数指针来调用函数"时需要付出的额外代价.
+标准库事先定义了一组function objects,分为算术运算,关系,逻辑运算三大类.以下列表中的type在实际运用中会被替换为内建类别或class类型.
+6个算术运算:plus<type>, minus<type>,negate<type>, greater<type>, greater_equal<type>,equal_to<type>, not_equal<type>
+6个关系: less<type>, less_equal<type>, greater<type>, greater_equal<type>, equal_to<type>, not_equal_to<type>
+3个逻辑运算:分别对应于&&,||,!,logical_and<type>, logical_or<type>,logical_not<type>
+
+#include <functional>
+transform(fib.begin(),fib.end(),  //想要转换的元素范围
+	  pell.begin(),          //所指元素将应用于转换操作上
+          fib_plus_pell.begin(), //所指位置及后继空间用来存放转换结果
+          plus<int>());//想要实施的转换操作
+
+
+function object adapters
+binder adapter:使得二元function object 转化为unary function object. 标准库提供了两个binder adapter: bindlst会将指定值绑定至第一操作数, bind2nd则将指定值绑定至第二操作数.
+bind2nd(less<int>,val);
+
+
+template<typename InputIterator, typename OutputIterator,
+ 	typename ElemType, typename Comp>
+OutputIterator
+filter(InputIterator first, InputIterator last,
+	OutputIterator at, const ElemType& val, Comp pred)
+{
+	while( (first=
+		find_if(first, last, bind2nd(pred,val)))!=last )
+	{
+		*at++=*first++;
+	}
+	
+	return at;
+}
+
+另一种adapter 是所谓的negator,他会逆转function object的真伪值,not1 可以逆转unary function object的真伪值, not2可逆转binary function object的真伪值.
+要找出所有大于等于10的元素,我们可以将function object less<int>的运算结果加以逆转
+find_if(iter, vec.end(), not1(bind2nd(less<int>,10)))
+
+
+map被定义为一对 pair的数值,key扮演索引的角色.
+#include <map>
+#include <string>
+map<string,int> words;
+words["vermeer"] = 1;
+words["vermeer"]++;
+words["vermeer"]会取出key相对应的value,如果key不在map内,它便会因此被置入map内,并获得默认值0;
+map对象(pair类型)有两个成员,first,second;
+想要查询map内是否存在某一个key,有三种方法,最直观的方法是把key当做索引使用:
+count=words["**"];//如果key不存在map内,则那个key会自动被加入map中,而其相应的value值会被设置为所属类型的默认值,如int 为0
+第二种利用自身的成员函数find: words.find("key")!=words.end();
+第三种利用map的count()函数,会返回某特定项目在map内的个数. int count = words.count(search_word);
+任何一个key值在map内最多只会有一份,如果我们需要存储多份相同的key值,就必须使用multimap.
+
+set:
+if( word_exclusion.count(tword) ) continue;
+words[tword]++;
+对于任何key值,set只会存储一份(即使输入的key有多个,也只会保存一份).如果要存储多份相同的key值,必须使用multiset;
+默认情况下,set元素依据其所属类型默认的less_than运算符进行排列.
+
+set<int> iset(vec.begin(), vec.end());
+
+泛型算法中有不少和set相关的算法:set_intersection(), set_union(), set_difference(), set_symmetric_difference();
+
+3.9如何使用Iterator Inserters
+filter()的实现中,我们将来源端容器之中的每一个符合条件的元素一一赋值至目的端容器中.
+这种形式之下,目的端的容器必须有足够大的容量,存储被赋值进来的每个元素.
+第一种:设定目的端容器的大小,使得其它等于来源端容器的大小;
+第二种:先定义一个空容器,而后每当有元素被安插进来的时候,才加以扩展.
+标准库有三个insertion adapters:
+1.back_inserter()会以容器的push_back()函数取代assignment运算符;
+unique_copy(ivec.begin(), ivec.end(), back_inserter(result_vec));
+
+
+2.inserter():会以容器的insert()函数取代=运算符.
+unique_copy(svec.begin(), svec.end(), inserteer(svec_res, svec_res.end()));//接受两个参数,一个是容器,一个是iterator,指向容器内的安插操作起始点.
+
+3.front_inserter()会以容器的push_front()函数取代=运算符,这个只适用于list和deque.
+#include <iterator>
+这些adapters并不能用在array上.
+
+
+3.10使用iostream Iterators
+#include <iterator>
+标准库定义有供输入及输出用的iostream iterator类,称为类istream_iterator和 ostream_iterator,分别支持单一类型单一类型单一类型的元素读取和写入.
+
+istream_iterator<string> is(cin);
+istream_iterator<string> eof;
+vector<string> text;
+copy(is,eof,back_inserter(text));
+sort(text.begin(),text.end());
+ostream_iterator<string> os(cout," ");
+copy(text.begin(), text.end(), os);
+
+
+绑定到文件:
+
+ifstream in_file("input_file.txt");
+ofstream out_file("output_file.txt");
+
+if(!in_file||!out_file)
+{
+	cerr<<"!! unable to open the necessary files.\n"; return -1;
+}
+
+istream_iterator<string> is(in_file);
+istream_iterator<string> eof;
+
+sort(text.begin(),text.end());
+ostream_iterator<string> os(out_file," ");
+copy(text.begin(), text.end(), os);
+
+
+
+/***************2 面向过程的编程风格***************************/
+一个比较常用的方法是返回值存放在一个引用参数中,返回值为true,或者false用来判断是否正确运行.
+当我们调用一个函数的时候,会在内存中建立起一块特殊的区域,称为程序栈,这块特殊区域提供了每个函数参数的存储空间,它也提供函数所定义的每个对象的内存空间,我们将这些对象称为local object,即局部对象.
+一旦函数完成,这块内存就会被释放,或者从程序中被pop出来.
+reference:理由有二:希望得以对所传入的对象进行修改, 降低复杂大型对象的负担.
+传递指针通常要判断是否为空指针,而ref只要被建立就一定要初始化,所以在调用函数的时候,不需要去判断.
+传地址或引用主要对应于class object, 内建类型最好直接使用传值的方式,除非需要对传入参数进行修改.
+对象如果在函数以外声明,则具有file scope,从声明点到文件尾端都是可视的,(声明点不是定义点,包括extern int a;)该内存在main()开始执行之前就已经配置好了,可以一直存在至程序结束为止.(有值初始化的应该在编译好之后就分配好内存,而未初始化的应该在载入内存的时候分配内存). 如果在file scope之内,必定会被初始化为0, 但是它们如果被定义于local scope之内,那么除非程序员指定其初值,否则不会被初始化(应该是在运行至其定义或使用之前不会被初始化,如果使用的时候应该还是会默认初始化的).
+
+heap: int* pia = new int[24];//数组中每个元素都未被初始化. 从heap配置而来的对象,被称为具有dynamic extent, 因为它们是在执行期通过表达式配置而来的,因此可以持续存活,直到以delete表达式加以释放为止.
+
+
+函数的默认参数:1.从最右边开始.2.默认值只能够指定一次,可以在函数声处. 亦可以在函数定义处.但不能两个地方都指定.通常在头文件指定.
+file scope会打乱不同函数之间的独立性,使得它们难以理解.
+
+
+局部静态对象,即使在不同的函数调用过程中,依然持续存在.
+
+const vector<int>* fibon_seq(int size)
+{
+	const int max_size = 1024;
+	static vector<int> elems;
+	if(size<=0 || size>max_size)
+	{
+		Cerruti<<"fibon_seq(): oops: invalid size: "<<size<<" -- can't fulfill request.\n";
+		return 0;
+	}
+
+	for(int ix = elems.size(); ix<size;++ix)
+	{
+		if(ix==0||ix==1)
+		{
+			elems.push_back(1);
+			
+		}
+		else
+		{
+			elems.push_back(elems[ix-1]+elems[ix-2]);
+		}
+	}
+}
+
+
+一般而言,inline最适合声明为inline的函数是体积小,常常被调用,所从事的计算并不复杂.
+inline函数的定义常常被置于头文件中,由于编译器必须在它被调用的时候加以展开,所以这个时候的其定义必须是有效的.
+
+函数重载,编译器无法根据函数返回类型来区分两个具有相同名称的函数,会产生编译期错误.
+function template:
+每当用户利用这个模板产生函数的时候,就必须提供确实的类型信息.这些识别名称事实上扮演着置物箱的角色,用来放置函数参数表及函数主体中的某些实际数据类型.
+即编译器会根据传入的类型,生成一份函数实体.
+函数重载:函数具备多种实现方式;
+函数模板:程序代码主体不变,仅仅是改变其中用到的数据类型.
+函数模板也可以是重载函数.
+
+template <typename elemType>
+void display_message(const string& msg, const vector<elemType>& vec);
+template <typename elemType>
+void display_message(const string& msg, const list<elemType>& vec);
+
+函数指针:
+const vector<int>* (*seq_ptr)(int); //现在seq_ptr可以指向 "具有所列之返回值类型及其参数"的任何一个函数.
+如:const vector<int> *pseq=seq_ptr(pos);
+因为是指针,所以在函数内也要判断是否是空指针. if(!seq_ptr)
+
+const vector<int>* (*seq_ptr)(int)=0;//初值为0,表示并未指向任何函数.
+
+seq_ptr=pell_seq;
+
+const vector<int>* (*seq_array[])(int)={fibon_seq, lucal_seq, pell_seq,triang_seq, square_seq, pent_seq};//函数指针数组
+
+在file_scope内定义的对象,如果可能被多个文件存取,则应该被声明(声明声明声明,不是定义)于头文件中,但用extern修饰.
+const object和inline函数一样是"一次定义规则"下的例外,const object只要一出文件之外便不可见,这意味着我们可以在多个程序代码文件中加以定义.,不会导致任何错误.
+
+
+/**************4
+const 修饰词紧接着函数参数列表之后,凡是在class主体之外定义的,如果他是一个const member function,那就必须在声明式与定义式中都指定const
+
+class val_class
+{
+	public:
+	const BigClass& val() const{return _val;}
+	BigClass& val() {return _val;}
+}
+
+private:
+mutable int _next;
+对_next所做的改变不会破坏class object的常数性.
+
+copy(const Triangular& rhs)
+{
+	if(this!=&rhs)
+	{
+		....
+ 	}
+	return *this;
+}
+
+
+static member function:
+member functions只有在不存取任何non-statix members 的条件下才能够被声明为static,声明方式是在声明式之前加上关键词static.
+public 和 private修饰的static, 有不同的scope.
+
+
+
+class Triangular
+{
+	public:
+	static bool is_elem(int);
+	static void gen_elements(int length);
+	private:
+	static const int _max_elems=1024;//VC++不允许在此直接指定初值
+}
+
+在class主体外部进行member functions的定义的时候,不需要重复加上关键词static,这个规则也是适用于static data members.
+
+独立的应用: bool is_elem = Triangular::is_elem(ival);//独立指的是不依靠任何的对象
+
+
+/************* Iterator Class *****************/
+
+需要为iterator class 定义 !=,*,++等运算符.
+
+class Ti
+{
+	public:
+	Ti(int index): _index(index-1){}
+	bool operator==(const Ti&) const {return _index==rhs._index;};
+	bool operator!=(const Ti&) const;
+	int operator*() const;
+	Ti& operator++();//前置版本 prefix
+	Ti operator++(int);//后置 postfix版本
+	
+
+	private:
+	void check_intefrity() const;
+	int _index;
+}
+Ti维护一个索引值,用以索引Triangular中用来存储数列元素的那个static data member,也就是_elems.
+运算符函数的参数列表中,必须至少有一个参数为class的类型.
+
+inline int Ti::operator*() const
+{
+	check_integrity();
+	return Triangular::_elem[_index];
+}
+
+inline Ti& Ti::operator++()
+{
+	++_index;
+	check_integrity();
+	return *this;
+}
+
+inline Ti Ti::operator++(int)
+{
+	Ti tmp = *this;
+	++_index;
+	check_integrity();
+	return tmp;
+}
+
+
+
+#include "Ti.h"
+
+class Triangular
+{
+public:
+	typedef Ti iterator;
+	Ti begin() const
+	{
+		return Ti(_beg_pos);
+	}
+	Ti end() const
+	{
+		return Ti(_beg_pos+_length);
+	}
+
+private:
+	int _beg_pos;
+	int _length;
+}
+
+嵌套类型:
+如果将iterator 嵌套置于每个 提供iterator抽象观念的class内,就可以提供多个定义,有着相同的名称(但是具体的类设计不同).
+Fibonacci::iterator fit = fib.begin();
+Pell::iterator pit=pel.begin();
+
+
+
+友元:具备了与class member function 相同的存取权限,可以存取class的private member.
+则需要在该class 内部加上friend+有元函数原型.
+
+class A内声明friend class B.则B的所有成员函数都能成为A的友元.
+
+
+默认的copy assignment operator是逐成员复制操作.这在遇到 指针相关的时候会出错.
+
+
+function object: 是一种提供有 function call 运算符的class.
+当编译器在编译过程中遇到函数调用,例如 lt(ival)的时候,lt可能是函数名称,可能是函数指针,也可能是一个提供了function call 运算符的function object.
+如果lt是一个class object. 编译器便会在内部将此语句转换为lt.operator(ival).function call 运算符可以接受任意数目的参数,零个,一个.两个或更多.
+
+class LessThan
+{
+public:
+LessThan(int val):_val(val){}
+int comp_val() const {return _val;}
+void comp_val(int nval){_val=nval;}
+bool operator(int _value) const;
+private:
+int _val;
+}
+
+inline bool LessThan::operator(int value) const{return value<_val;}
+
+将这个类传给泛型算法:
+void print_less_than(const vector<int>& vec, int comp, ostream& os=cout)
+{
+	LessThan lt(comp);
+	vector<int>::const_iterator iter=vec.begin();
+	vector<int>::const_iterator it_end=vec.end();
+
+	os<<"elements less than "<<lt.comp_val()<<endl;
+	while((iter=find_if(iter, it_end,lt))!=it_end)
+	{
+		os<<*iter<<' ';++iter;
+	}
+}
+//ostream的引用
+ostream& operator<<(ostream& os, const Triangular& rhs)
+{
+	...
+	return os;// << <<可以实现连续的<<的功能.
+}
+istream& operator>>(istream& is, Triangular& rhs)
+{
+	...
+	return is;
+}
+应该都要是对应的类的友元.
+
+
+
+/*******************5**********************/
+继承和多态,继承得以将一群相关的类组织起来,并让我们得以分享其间的共通数据和操作行为.
+多态:可以让基类的指针或者引用得以十分透明地指向其任何一个派生类的对象.
+找出实际被调用的究竟是哪一个派生类的check_in()函数,这一决议操作会延迟至执行期runtime才进行,称为动态绑定dynamic binding,相对应的在程序执行之前就已经决议出应该调用哪一个函数,这一种方式被称为静态绑定static binding.
+多态和动态绑定的特性,只有在使用pointer,reference的时候才能发挥.
+继承特性让我们得以定义一整群互有关系的类.并共享共通的接口.多态则让我们得以用一种与类型无关的方式来操作这些类对象.
+
+protect与private的主要差别在于派生类可以直接取用protected成员.
+
+const string& title() const{return _title;}
+
+static member function无法被声明为虚拟函数.
+定义抽象类:
+1.找出所有子类共通的操作行为.
+2.设法找出哪些操作行为和类型相依,即那些操作行为必须依据不同的派生类而有不同的实现方式.这些操作行为应该成为整个类继承体系中的虚拟函数.
+3.试着找出每个操作行为的存取层级,public,private, protected.
+如果某个操作行为应该让一般程序皆能取用,声明为public.
+如果某个操作行为在基类以外不需要被用到,private.即使是该基类的派生类,也无法使用基类中的private member.
+每个虚拟函数,要么得有其定义,要么可以设置为纯虚拟函数.virtual void gen_elems(int pos)=0;
+有纯虚拟函数的类,由于其接口的不完整,程序无法为它产生任何对象.
+析构函数最好都加虚.一般规则,凡基类定义有一个或多个虚拟函数,应该要将其析构函数声明为virtual,所以最好都加上虚.
+如果在函数体中没有任何语句,也不要将虚析构函数设置为纯虚函数,最好只是提供空白定义.
+派生类必须为基类继承而来的每个纯虚函数提供对应的实现内容(只要派生类不是接口类),即要在派生类的声明中应该是复制一遍基类虚函数的原型(如果不加上virtual应该就是重写了,而且会覆盖基类所有同名的虚函数).
+派生类加不加virtual都可以,但最好都加上.
+
+在Fibonacci::elem()内,如果要调用这个类中的gen_elems()(它也是一个虚函数),有两种方式调用,直接gen_elems()(那究竟调用当前类还是基类的,取决于调用的对象,当然这里默认应该是调用当前类,但这都得在执行期决定)
+第二种是加上作用域符号Fibonacci::gen_elems(),这样就不必等到执行期才进行gen_elems()的决议操作.通过class scope运算符,可以明白告诉编译器,我们想要调用哪一份函数实体,于是,执行期发生的虚拟机制便被遮掩了.
+
+
+
+每个派生类有某一个member与其基类的member同名的时候,变回遮蔽住基类的那份member.在这种情况下,如果要在派生类内使用继承而来的那份member,
+必须利用class scope运算符加以修饰.
+
+数据成员如果是个引用,则必须在constructor的成员初始化列表中加以初始化,一经初始化,再也无法指向另一个对象.
+
+Fibonacci& Fibonacci::operator=(const Fibnacci& rhs)
+{
+	IF(this!=&rhs)
+	{
+		num_sequence::operator=(rhs);
+	}
+	return *this;
+}
+
+
+
+在改写虚拟函数的时候,返回类型必须完全吻合,包括 参数列表后是否加上const
+例外情况是当基类的虚拟函数返回某一个基类形式,通常是pointer or ref.
+
+vertual num_sequence* clone()=0;
+
+Fibonacci* clone(){...}
+
+
+在基类的constructor中,派生类的虚拟函数绝对不会被调用,如果在构造函数内调用某些成员函数,则一定是自身的那一个函数,即使它是虚拟的,如果在基类的析构函数中调用虚拟函数,此
+\规则同样成立.
+
+
+执行期的类型鉴别机制:RTTI
+
+
+#include <typeinfo>
+return typeid(*this).name();  typeid()返回一个type_info对象,该对象的name()函数返回一个const char*,用以表示类名称.
+type_info class也支持相等和不相等两个比较操作.
+num_sequnence* ps = &fib;
+if(typeid(*ps)==typeid(Fibonacci)) {...}
+即使ps指向了fib,ps也只能够调用num_sequence类才有的成员函数.
+
+无条件转换:
+Fibonacci* pf = static_cast<Fibonacci*>(ps);
+pf->gen_elems(64);
+存在潜在危险,因为编译器无法确认所进行的转换操作是否完全正确.
+
+if(Fibonacci *pf = dynamic_cast<Fibonacci*>(ps)) {pf->gen_elems(64);}
+dynamic_cast会进行执行期检验操作,检验ps所指向的对象是否属于Fabonacci类,如果是,转换操作便会发生,于是pf便能够指向Fibonacci对象,如果不是,
+dynamic_cast运算符返回0.
+
+
+模板编程中通常参数传递都采用引用传递,因为如果有些class不提供赋值操作.
+构造函数中对数据成员初始化都采用列表初始化的方式,防止类型不能用=实现赋值.
+
+
+
+
+
+
+
+
+模板声明不是将被编译的代码,它们指示编译器如何生成与源代码中的函数调用相匹配的函数定义.所以可以放在头文件中,返回类型不能是数组.
+C++标准允许每个编译器设计人员以他认为合适的方式实现名称修饰,因此由不同的编译器创建的二进制模块(对象代码文件)很可能无法正确地链接,即两个编译器将为同一个函数生成不同的修饰名称,名称的不同将使得连接器无法将一个编译器生成的函数调用与另一个编译器生成的函数定义匹配.在链接编译模块时,请确保所有对象文件或库都是由同一个编译器生成的.
+
+
+意味着仅当以前没有使用预处理编译指令#define定义名称COORDIN_H时,才处理#ifndef 和 #endif之间的语句;
+因为在预处理阶段,当前文件会把所有的include文件中的内容复制到当前文件中,所以如果编译器首次遇到该文件,名称COORDIN_H没有定义,这种情况下,编译器才查看#ifndef和#endif之间的内容,并读取定义COORDIN_H的一行,如果在同一个文件中遇到其它包含coordin.h的代码,编译器将知道COORDIN_H已经被定义了,从而跳到#endif后面的一行上,这种方式并不能防止编译器将文件包含两次,而只是让它忽略除第一次包含之外的所有内容.
+
+
+静态持续变量的初始化:零初始化+常量表达式被统称为静态初始化,这意味着在编译器处理文件(翻译单元)时初始化变量,动态初始化意味着变量将在编译后初始化.
+
+
+
+
+/******多态+virtual函数**********/
+使用virtual关键字的函数被重写后就会根据实际的对象类型指向对应的函数。
+所谓的多态就是指同样的调用语句会有多种不同的表现状态。
+父类指针指向子类对象和父类对象引用子类对象才可以实现所谓的多态，而父类元素被子类对象初始化是不展示多态特性的。
+10.多态成立的条件
+
+    存在继承关系。
+    父类函数为virtual函数，并且子类重写父类的virtual函数。
+    存在父类的指针（引用）指向（引用）子类对象。
+
+
+
+
+Stonewt对象转换为double,int这样的值??
+需要用到特殊的C++运算符函数-转换函数
+转换函数是用户定义的强制类型转换,可以像使用强制类型转换那样使用它们,前提是得在类里面定义.
+double host = doubel(wolfe);//显示转换
+Stonewt wells(20,30);
+double star=wells;//隐式转换  原则上,最好使用显式转换,而避免隐式转换
+
+创建转换函数:
+operator typeName();
+转换函数必须是类方法,转换函数不能指定返回类型,转换函数不能有参数
+
+operator int() const;
+operator double() const;
+
+Stonewt::operator int() const
+{
+  return int(pounds+0.5);
+}
+Stonewt::operator double() const
+{
+  return pounds;
+}
+
+对于不能在类声明中初始化静态数据成员的一种例外情况是,静态数据成员为整型或枚举型const.
+
+
+与复制构造函数(默认的)相似,赋值运算符的隐式实现也对成员进行逐个复制.如果成员本身就是类对象,则程序将使用为这个类定义的赋值运算符来复制
+该成员,但静态数据成员不受影响.
+
+3.解决赋值的问题
+其实现与复制构造函数相似,但也有一些差别
+1.由于目标对象可能引用了以前分配的数据,所以函数应使用delete[]来释放这些数据
+2.函数应当避免将对象赋给自身,否则,给对象重新赋值前,释放内存操作可能删除对象的内容.
+3.函数返回一个指向调用对象的引用.
+
+静态类成员函数
+1.不能通过对象调用静态成员函数,静态成员函数不能使用this指针(因为静态类成员函数和数据成员不属于任何对象),如果静态成员函数是在
+public部分声明的,则可以使用类名和作用域解析运算符来调用它.
+int count = StringBad::HowMany();
+2.由于静态类成员函数,不与特定的对象相关联,因此只能使用静态数据成员,例如静态方法HowMany()可以访问静态成员num_string,但是不能访问
+str,len.
+同样也可以使用静态成员函数设置累级标记,以控制某些类接口的行为,例如,类级标记可以控制显示类内容的方法所使用的格式.
+
+复制构造函数应该分配足够的空间存储复制的数据,并复制数据,而不仅仅是数据地址.另外还应该更新所有受影响的静态类成员.
+
+
+返回指向非const对象的引用
+两种常见情形:重载复制运算符以及重载与cout一起使用的<<运算符,前者这样做旨在提高效率,而后者必须这样做.
+
+返回对象:
+被返回的对象是被调用函数中的局部变量.通常被重载的算术运算符属于这一类.
+
+返回const对象
+如果返回非const 对象
+可能出现
+force1+force2 = net;//force1+force2生成一个临时对象,net会给这个临时对象赋值.
+
+
+
+友元:
+std::ostream& operator<<(std::ostream& os, const hasDMA& hs)
+{
+  os<<(const baseDMA&)hs;//不是baseDMA的友元,所以不能直接访问label和rating,因为友元不是成员函数,所以不能使用作用域解析符
+os<<"Style: "<<hs.style<<std::endl;
+return os;
+}
+
+
+hasDMA部分:
+hasDMA& hasDMA::operator=(hasDMA& hs)
+{
+  if(this=&hs)
+    return *this;
+  baseDMA::operator=(hs);//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  delete[] style;
+  style=new char[std::strlen(hs.style)+1];
+  std::strcpy(style,hs.style);
+  retur *this;
+}
+
+
+MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI MI 
+class SingingWaiter: public Singer, public Waiter{...}
+因为Singer 和 Waiter都继承了一个Worker组件,因此SingingWaiter将包含两个Worker组件.
+这将引起问题,如通常可以将派生类对象的地址赋给基类指针,但现在出现二义性
+SingingWaiter ed;
+Worker* pw = &ed;
+ed包含两个Worker对象,有两个地址可供选择,所以应该使用类型转换来指定对象.
+Worker* pw1=(Waiter*)&ed;
+Worker* pw2=(Singer*)&ed;
+
+加了虚基类的构造函数:
+C++在基类是虚的时候,禁止信息通过中间类自动传递给基类.
+编译器必须在构造派生对象之前,构造基类对象组件,可以使用默认构造函数.
+显式的构造函数(也可以使用默认的虚基类构造函数):
+SingerWaiter(const Worker& wk, int p=0, int v=Singer::other):Worker(wk),Waiter(wk,p),Singer(wk,v){}
+对于虚基类,必须这样做,但对于非虚基类,则是非法的.
+
+栈解退:
+函数调用和返回:入栈-出栈,每个函数都在结束的时候,释放其自动变量,如果自动变量是类对象,则类的析构函数将被调用,然后程序继续执行调用函数处的下一条指令
+而出现异常的时候:
+!!!!!!!!!!!!!!
+该函数由于出现异常而终止,则程序也将释放栈中的内存,但不会释放栈的第一个返回地址后停止,而是继续释放栈,直到找到一个位于try块中的返回地址.
+随后控制权将转到块尾的异常处理程序,而不是调用函数后面的第一条语句.和函数返回一样,对于栈中的自动类对象,类的析构函数将被调用.throw语句处理try和throw之间
+整个函数调用序列放在栈中的对象.
+
+
+!!!!!!!exception类
+头文件exception
+
+exception类:C++可以把它用作其他异常类的基类,代码可以引发exception异常,也可以将这个类用作基类,有一个what()的虚拟成员函数,它返回一个字符串,
+该字符串的特征随实现而异,what()是一个虚方法,所以可以在从exception派生而来的类中重新定义它:
+#include <exception>
+class bad_mean:public std::exception
+{
+  public:
+const char* what(){return "bad arguments to hmean()";}
+}
+
+如果不想以不同的方式去处理这些派生而来的异常,可以在同一个基类处理程序中捕获它们.
+try
+{
+ ...
+}
+catch(std::exception& e)
+{
+  cout<<e.what()<<endl;
+}
+
+对键盘输入进行缓冲可以让用户在将输入传输给程序之前返回并更正。C++程序通常在用户按下回车键的时候刷新输入缓冲区，然后程序处理输入。
+对于屏幕输出，C++程序通常在用户发送换行符时刷新输出缓冲区（或缓冲区填满）。当程序到达输入语句的时候，它将刷新输出缓冲区中当前所有的输出。
+缓冲区是内存块，可以简单理解为是一个程序new出来的，。。。？？？？
+
+流、缓冲区、iostream
+streambuf类为缓冲区提供了内存，并提供了用于填充缓冲区，访问缓冲区内容，刷新缓冲区和管理缓冲区内存的类方法。
+ios_base类表示流的一般特征，如是否可读取，是二进制流还是文本流等。
+ios基于ios_base,其中包括了一个指向streambuf对象的指针成员。
+ostream类是从ios类派生而来的，提供了输出方法
+istream类也是从ios类派生而来的，提供了输入方法
+iostream类也是基于istream和ostream类的，因此继承了输入方法和输出方法。
+要使用这些工具，必须使用适当的类对象，例如，使用ostream对象，如cout来处理输出，创建这样的对象将打开一个流，自动创建缓冲区，并将其与流关联起来，同时使得能够使用类成员函数。
+在c++11中，ios基类中的一些独立于类型的信息被移动到新的ios_base类中，这包括各种格式化常量，例如ios::fixed(现在为ios_base::fixed),另外，ios_base还包含了一些老式ios中没有的选项。
+
+
+来自缓冲区的输出被导引到标准输出—（通常是显示器，由操作系统提供）。总之，流的一端与程序相连，另一端与标准输出相连，cout对象凭借streambuf对象的帮助，管理着流中的字节流。
+流与标准输出的连接及传输数据是由操作系统管理的。
+C++将输出看做字节流，但在程序中，很多数据被组织成比字节更大的单位，ostream类最重要的任务之一是将数值类型（int,float）转换为以文本形式表示的字符流。即将数据内部表示（二进制位模式）转换为由字符字节组成的输出流（-2.35->-,2,.,3,4）
+
+<<插入运算符被重载，使之能够识别C++中所有的基本类型（char,shor,int,float,double包括有符号无符号long等）
+ostream类还为下面的指针类型定义了插入运算符函数：
+const signed char*
+const unsigned char*
+const char*
+void*
+
+对于其他类型的指针，C++将其对应于void*,并打印地址的数值表示，如果要获得字符串的地址，则必须将其强制转换为其他类型。
+char* amount="dozen";
+cout<<(void*)amount;
+
+不同版本的抽取运算符查看输入流的方法是相同的,它们跳过空白(空格,换行符和制表符),直到遇到非空白字符,即使对于单字符模式,情况也是如此.在单字符模式下,
+>>运算符将读取该字符,将它放置到指定的位置,在其他模式下面,>>运算符将读取一个指定类型的数据,也就是说,它读取从非空白字符开始,到与目标类型不匹配的第一个字符
+之间的全部内容.
+输入有时可能没有满足程序的期望,在这种情况下,抽取运算符将不会修改变量的值,并返回0(如果istream的状态被设置,if或while语句将判定该对象为false).
+
+空行会导致while(cin.get(temp,80))终止循环,但是不会导致getline终止循环
+因为getline仍然将抽取换行符,虽然不会存储它.所以如果希望getline()在遇到空行的时候终止循环,则可以这样编写:
+char temp[80]
+while(cin.getline(temp,80)&&temp[0]!='\0')
+
+
+
+
+内核格式化:
+iostream族(family)支持程序与终端之间的I/O,而fstream 族使用相同的接口提供程序与文件之间的I/O,
+C++库还提供了sstream族,它们使用相同的接口提供程序和string对象之间的I/O.
+即可以使用cout的ostream方法将格式化信息写入到string对象中,并使用istream方法(如getline)来读取
+string对象中的信息.读取string对象中的格式化信息或将格式化信息写入string对象中被称为内核格式化
+incore formatting
+
+ostringstream outstr;
+double price=380.0;
+char * ps="for a copy of the ISO/EIC";
+outstr.precision(2);
+outstr<<fixed;
+outstr<<"Pay only CHF "<<price<<ps<<endl;
+
+string mesg= outstr.str();
+使用str()方法可以冻结该对象,这样便不能将信息写入该对象中.
+
+
+
+istringstream 类允许使用istream方法族读取istringstream对象中的数据,可以使用string对象进行初始化
+istringstream instr(facts);
+如果instr包含大量字符格式的整数,则可以这样读取它们:
+int n;
+int sum=0;
+while(instr>>n)
+    sum+=n;
+
+seekg()和seekp()函数提供对文件的随机存取,这些类方法使得能够将文件指针放置到相对于文件开头,文件尾,和当前位置的某个位置,tellg()
+tellp()方法报告当前的文件位置.
+
+
+
+条款4:永远在使用对象之前先将它初始化.对于无任何成员的内置类型,必须手工完成此事.至于内置类型以外的其他任何东西,确保每一个构造函数都将对象的每一个成员初始化.
+对象的成员变量的初始化动作发生在进入构造函数本体之前,在本体之中的其实已经不是初始化了,而是赋值了,初始化的发生时间更早,发生于这些成员的默认构造函数被自动调用之时??
+反正比进入构造函数本体的时间更早.但是对于内置类型,不保证在本体内的赋值动作的时间点之前获得初值.
+
+ABEntry::ABEntry()
+:theName(),
+nemTimesConsulted(0)//default 构造一个成员变量
+{}
+如果成员变量是const或ref,它们就一定要初始化列表初始化的方式,不能被赋值.所以最简单的做法就是,总是使用成员初始值列的方式.
+不多成员变量的初始值系由文件或数据库读入的时候,通常是在本体中使用赋值的方式,为了方便,可以弄一个私有的成员函数,用它来初始化这些变量,然后在构造函数本体中调用.
+C++有着十分固定的成员初始化次序,基类先于派生,成员变量总是以其声明次序被初始化.当在成员初始值列条列出各个成员的时候,最好总是以其声明的次序为次序,有些初始化array的时候需要指定大小,因此代表大小的那个成员变量必须先有初始值.
+
+初始化:1.内置类型,手工初始化
+2.构造函数最好使用成员初始化列表的方式.
+3.为免除 "跨编译单元之初始化次序的"问题,以local static对象替换non-local static对象.C++保证,函数内的local static对象会在该函数被调用期间,首次遇上该对象之定义式时被初始化,所以如果你以函数调用(返回一个reference指向local static对象)替换直接访问non-local对象,你就获得了保证,保证你所获得的那个reference将指向一个历经初始化的对象.如果你从未调用non-local static对象的仿真函数,就绝对不会引发构造析构成本,真正的non-local static对象可没这等便宜.
+
+class FileSystem{...}
+FileSystem& tfs()
+{
+	static FileSystem fs;
+	return fs;
+}
+
+class Directory{...};
+Directory::Directory(params)
+{
+	...
+	std::size_t disks = tfs().numDisks();
+	...
+}
+
+即使用函数返回的 "指向static对象"的references,而不再使用static对象自身.
+但是但是但是但是!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+这些内含static对象的事实使得它们在多线程系统中带有不确定性质,任何一种non-const static对象,不论它是local或是non-local,在多线程环境下 "等待某事发生"都会有麻烦.处理这个麻烦的一种做法是,在程序的单线程启动阶段手工调用所有的
+reference-returning 函数,这可以消除与初始化有关的竞速度=形式.
+运用reference-returning 函数防止"初始化次序问题".前提是其中有着一个对对象而言合理的初始化次序.
+
+
+如果成员变量有一个是引用,那么赋值运算应该就不成立的,因为引用只能在初始化的时候指向一个对象,后面就不再变了.
+如果是编译器创建的赋值函数,那么无法编译,需要自己定义copy assignment函数,对于有const数据成员的类也一样.
+如果某一个基类将copy assignment操作符声明为private,编译器将拒绝为其派生类生成copy assignment操作符.
+编译器可以暗自为class创建默认构造函数,copy构造函数,copy赋值函数,以及析构函数.
+
+为驳回编译器自动提供的机能(如copy assignment),可以将相应的成员函数声明为private并且不予实现,使用像Uncopyable这样的base class 也是一种做法,private继承.
+
+class Uncopyable
+{
+	protected:
+	Uncopyable(){}
+	~Uncopyable(){}
+	
+	private:
+	Uncopyable(const Uncopyable&);//阻止了复制构造函数
+	Uncopyable& operator=(const Uncopyable&);
+};
+
+
+class HomeForSale: private Uncopyable
+{
+	...
+};
+
+
+标准程序库实现代码中的ios_base, basic_ios和sentry,无论哪一个,其copy构造函数和copy assignment操作符都被声明为private,而且没有定义.
+
+给base classes 一个virtual析构函数,这个规则只是适用于多态 base classes身上.这种base classes的设计目的是为了通过base class接口处理derived class对象.有些class的目的仅仅是作为base class适用,不是多态,string,STL不被设计为base classes使用.
+point class内涵virtual函数,其对象的体积会增加.
+要实现virtual函数,对象必须携带某些信息,主要用来在运行期决定哪一个虚函数该被调用.这份信息通常是一个所谓vptr,virtual table pointer,指针指出,vptr指向一个由函数指针构成的数组,称为vtbl,每一个带有虚函数的类都有一个相应的vtbl,当对象调用某一个虚函数的时候,实际被调用的函数取决于该对象的vptr所指向的那个
+vtbl,编译器在其中寻找适当的函数指针.
+所以,无端地将所有的classes的析构函数声明为virtual,就像从未声明它们为virtual一样,都是错误的.
+
+
+
+吞下因为调用close而发生的异常.
+DBConn::~DBConn()
+{
+    try{db.close();}
+    catch(...)
+    {
+        制作运转记录,记下对close的调用失败;
+//std::abort();
+    }
+}
+析构函数绝对不要吐出异常,如果一个被析构函数调用的函数可能抛出异常,析构函数应该捕捉任意异常,然后吞下它们(不传播)或结束程序.
+
+如vector<DBConn> 如果第一个析构抛出异常导致程序终止,会导致剩余的元素的内存无法释放.
+
+
+static对象,其寿命从被构造出来直到程序结束为止,因此栈和堆对象被排除.这种对象包括global对象,定义在namespace作用域内的对象,在classes内\在函数内\以及在file作用域内被声明为static的对象.函数内的static对象被成为local staic对象,其它的static对象被称为non-local static对象.程序结束的时候对象会被自动销毁,也就是它们的析构函数会在main()结束的时候被自动调用.
+
+
+
+绝对不在构造和析构过程中调用virtual函数.
+在base class构造期间,virtual函数不是virtual函数.
+因为此时derived class成员变量尚未初始化.而析构函数中,derived class的成员变量已经被销毁了.
+
+
+class BuyTransaction:public Transaction{
+public:
+	BuyTransaction(parameters)
+	:Transaction(createLogString(parametes)){...}
+	...
+
+private:
+	static std::string createLogString(parameters);
+//!!!!!!!!!!!!!!!!!!!!!!!!!
+
+}
+
+
+因为无法使用virtual函数从base classes向下调用,在构造期间,可以借 "令derived classes将必要的构造信息向上传递至base classes构造函数"替换之而加以弥补.
+在上面这个例子中,createLogString是static,所以里面不会使用到当前类中非static成员变量,所以也就不可能意外指向初期类对象内尚未初始化的成员变量.
+
+令operator=返回一个reference to *this;
+这个协议不仅适用于以上的标准赋值形式,也适用于所有赋值相关运算,如+=;
+这个协议并无强制性,但是这份协议被所有的内置类型和标准程序库提供的类型人string,vector,complex,tr1::shared_ptr或即将提供的类型共同遵守,因此除非你有一个标新立异的好理由,还是随众吧.
+
+条款11 在operatorz=中处理"自我赋值"
+Widget& Widget::operator=(const Widget& rhs)
+{
+	if(this==&rhs) return *this;//
+	Bitmap* pOrig = pb; //记住原先的pb
+	pb=new Bitmap(*rhs.pb);//令pb指向*pb的一个复件
+	delete pOrig;//如果分配内存成功,就可以删除原先的pb了.
+	return *this;
+}
+
+确保当对象自我赋值的时候,operator=有良好的行为,其中技术包括比较"来源对象"和"目标对象"的地址,精心周到的语句顺序,以及copy-and-swap;
+
+复制对象的时候,别忘记其每一个成份.
+copy构造函数,copy assignment操作符,统称为copying函数.
+copying函数应该确保复制 "对象内的所有成员变量"以及所有base class成份.
+不要尝试以某一个copying函数实现另一个copying 函数.应该将共同机能放进第三个函数中,并由两个copying函数共同调用.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
