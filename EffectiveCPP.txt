@@ -967,6 +967,244 @@ copy构造函数,copy assignment操作符,统称为copying函数.
 copying函数应该确保复制 "对象内的所有成员变量"以及所有base class成份.
 不要尝试以某一个copying函数实现另一个copying 函数.应该将共同机能放进第三个函数中,并由两个copying函数共同调用.
 
+/**************20180804********************/
+为确保资源总是被释放,需要将资源放进对象内,当控制流离开f,该对象的析构函数会自动释放那些资源.
+void f()
+{
+	std::auto_ptr<Investment> pInv(createInvestment());
+	...
+}
+1.获得资源之后,立刻放进管理对象.
+2.管理对象运用析构函数确保资源被释放.但是如果资源释放动作可能导致抛出异常,事情变得有点棘手,条款8.!!!!!
+auto_ptr:通过copy构造或copy assignment复制它们,它们会变成null,而复制所得的指针将取得资源的唯一拥有权.但是还是会出现意外,有人还是可能会去使用复制之前的指针,所以unique_ptr,阻止了复制这一个行为,但是如果返回的是函数内部new出来的资源被赋值给一个unique_ptr,然后把这个指针返回,还是可以的.
+因为参数会发生复制行为,所以参数中不能用pass by value的方式.
+shared_ptr:引用计数型智慧指针:持续追踪共有多少对象指向某笔资源,并在无人指向他的时候自动删除该资源.
+!!!!!!!!!!!!!!!!auto_ptr, shared_ptr使用delete而不是delete[]删除动作,所以不能用于动态分配的数组上,即使能够通过编译.
+vector string几乎总是可以取代动态分配而得的数组.unique_ptr已经可以实现这一个功能了.
+
+条款14:在资源管理勒种小心copying行为.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+void lock(Mutex* pm);
+void unlock(Mutex* pm);
+
+class Lock
+{
+public:
+explicit Lock(Mutex* pm):mutexPtr(pm){lock(mutexPtr);}//获得资源
+~Lock(){unlock(mutexPtr);}
+
+private:M* mutexPtr;
+};
+
+Mutex m;//定义你需要的互斥器
+...
+{//机那里一个区块用来定义critical section
+Lock m1(&m);//锁定互斥器
+...//执行critical section内的操作
+}//在区块最末尾,自动解除互斥器锁定
+ BUT BUT BUT !!!!!!!!!!!!!!!!!!!如果Lock对象被复制,会发生什么事情呢???
+所以方法如下几种选择:
+1.禁止复制:将复制构造函数Lock(Lock&),赋值函数 Lock& operator=(Lock&)指定为private
+或者私有继承自 Uncopyable
+2.对底层资源使用 "引用计数法" shared_ptr
+shared_ptr允许指定所谓的删除器deleter,那是一个函数或函数对象,当引用次数为0的到时候便被调用(auto_Ptr不存在这种功能,它总是将其指针删除)
+删除器对shared_ptr构造函数而言是一个可有可无的第二参数.
+class Lock
+{
+public:
+explicit Lock(Mutex* pm)
+	:mutexPtr(pm,unlock)
+	{
+		lock(mutexPtr.get());
+	}
+private:
+	std::tr1::shared_ptr<Mutex> mutexPtr;
+}
+class的析构函数会自动调用其non-static成员变量的析构函数,所以此时不需要声明析构函数.mutexPtr的析构函数会在互斥器的引用计数为0的时候自动调用tr1::shared_ptr的删除器.
+
+3.复制底部资源,深度拷贝.
+4.转移底部资源的拥有权.auto_ptr的复制意义.
+
+
+条款15:在资源管理类中提供对原始资源的访问:
+1.APIs往往要求能够访问原始资源,所以每一个RAII class应该能够提供一个"取得其所管理之资源"的办法.
+2.对原始资源的访问可能经由显示转换或隐式转换.一般而言,显示转换比较安全,但对隐式转换对客户比较方便,但还是显示转换比较方便.
+
+class Font
+{
+public:
+explicit Font(FontHandle fh):f(fh){}
+~Font(){releaseFont(f);}
+
+FontHandle get() const{return f;}//显示转换函数
+operator FontHandle() const{return f;}
+private:
+FontHandle f;
+};
+
+条款16成对的使用new ,delete时要采取相同的形式.
+new delete
+new [], delete [],[]是用来说明删除的内存个数.
+为避免错误,最好不要对数组形式做typedef动作.
+typedef std::string AddressLines[4];
+std::string* pal = new AddressLines;
+delete[] pal;
+
+条款17:以独立语句将newed对象置如智能指针:
+int priority();
+voidprocessWidget(sta::tr1::shared_ptr<Widget> pw, int priority);
+//编译失败情况:
+processWidget(new Widget,priority());
+shard_ptr构造函数需要一个原始指针,而且构造函数是一个explicit构造函数,所以不允许=这样的构造函数,无法进行隐式转换.
+//可能造成资源泄露的情况:
+processWidget(std::tr1::shared_ptr<Widget>(new Widget), priority());
+在调用processWidget之前,编译器必须创建代码,做以下三件事情:
+调用priority
+执行new Widget
+调用 tr1::shared_ptr构造函数.
+
+C++没有明确的次序去完成这些事情,所以可能形成如下顺序:
+1.new Widget
+2.priority()
+3,调用shared_ptr构造函数
+所以如果priority调用异常,new widget返回的指针将会遗失,因为尚未被置如shared_ptr内.所以在资源被创建和资源被转换为资源管理对象这两个时间点之间有可能发生异常干扰.
+所以为避免这种情况出现,使用分离语句:
+std::tr1::ptr_shared<Widget> pw(new Widget);
+processWidget(pw,priority());
+
+/*********第四章**********/
+条款18:让接口容易被正确使用,不易被误用
+class Date
+{
+public:
+Date(int month, int day, int year);
+...
+};
+容易以错误的次序传递参数
+可能传递无效的月份或天数
+
+1.
+struct Day
+{
+	explicit Day(int d):val(d){}
+	int val;
+};
+
+struct Month
+{
+	explicit Month(int m):val(m){}
+	int val;
+};
+
+struct Year
+{
+	explicit Year(int y):val(y){}
+	int val;
+};
+
+class Date
+{
+public:
+Date(const Month& m, const Day& d, const Year& y);
+}
+Date d(Month(3),Day(30),Year(1995));
+注意令Day,Month,Year成为成熟且经过充分锻炼的class并封装其内数据,比简单的使用struct好,但上述情况已经足够释放.
+
+2.限制值的范围
+class Month
+{
+public:
+static Month Jan(){return Month(1);}
+static Month Feb(){return Month(2);}
+...
+private:
+explicit Month(int m);//阻止了生成新的月份,因为是private,所以不能从外部赋新的值2去构造函数
+...//这是月份的专属数据
+}
+Date d(Month::Mar(), Day(30), Year(1995));
+
+限制类型内什么事情可做,什么事情不可做.如operator* 返回类型为const修饰.
+
+直接令factory函数返回一个智能指针:
+std::tr1::shared_ptr<Investment> createInvestment();
+可以防止客户忘记了使用智能指针.
+
+shared_ptr使用删除器而不是delete的时候
+shared_ptr<Investment> createInvestment()
+{
+	shared_ptr<Investment> retVal(static_cast<Investment*>(0), getRidOfInvestment);//因为shared_ptr构造函数得是指针,所以需要将0转换为0指针,get...那个是删除器
+	retVal=...;//令retVal指向正确对象
+	return retVal;
+}
+直接将原始指针传给pInv构造函数会比先将pInv初始化为null再对它做一次赋值操作为佳.
+shared_ptr支持定制型删除器,这可以防范DLL问题,可被用来自动解除互斥锁.
+
+
+条款20:以pass-by-reference-to-const 替换 pass-by-value
+前者通常比较高效,并且可以避免切割问题 slicing problem.
+以上规则并不适用于内置类型,以及STL的迭代器和函数对象,对它们而言,pass-by-value往往比较适当.
+
+pass by ref通常意味着真正传递的是指针.因此内置类型使用值传递(可能是因为指针并不比内置类型小,如x64,指针为8字节,int为4个字节,double为8个字节)
+但从存储空间考虑并不适用于用户自定义的class,因为如一个类,里面的成员变量只是一个指针,但那个指针可能指向一个非常大的内存空间,则在复制的时候会涉及到深度拷贝.
+而且一些编译器会把内置类型和指针放进缓存器内,而对class不会,即使它只包含一个内置类型的成员变量.
+
+
+
+
+条款21:必须返回对象的时候,别妄想返回其reference.
+可能会出现传递一些references指向并不存在的对象.
+绝不要返回指针或者引用指向一个local stack对象;
+或返回reference,指针指向一个heap-allocated对象(w=x*y*z,会分配两次内存,而不知道怎么调用delete去销毁分配的内存)
+或返回指针或引用指向一个local static对象,而有可能同时需要多个这样的对象(如a*b==c*d,==两边均指向同一个内存,所以无论结果如何都是相等的);
+所以要指向一个local static则前提是这个对象本身可能是不变的.或者不是同时需要多个这样的对象.
+
+
+
+#22 将成员变量声明为private
+1.客户不用解决是否需要加()
+2.通过函数访问成员变量,日后可改以某个计算替换这个成员变量.
+
+切记将成员变量声明为private,这可以赋予客户访问数据的一致性,可以细微划分访问控制,允诺约束条件获得保证,并提供class作者以充分的实现弹性.
+protected并不比public更具有封装性质.
+public成员变量被取消,会导致所有使用它的客户码都会被破坏,而那是一个不可知的大量.public完全没有封装性质.
+protected 成员变量,取消,会导致所有使用它的protected 成员变量都会被破坏,也是一个不可知的大量.
+太多代码需要重写,重新测试,重新编写文档,重新编译.
+
+
+#23 拿 non-member no-friend函数替换member函数,这样做可以增加封装性,包裹弹性和机能扩展性.
+
+计算能够访问数据的函数数量,作为封装性的粗糙量测.
+称为class的non-member并不意味它不可以是另一个类的member.
+C++中,比较自然的做法是让clearBrower成为一个non-member函数位于webBrower所在的一个namespace内.
+
+namespace WebBrowserStuff
+{
+	class WebBrowser{...};
+	void clearBrowser(webBrowser& wb);
+	...
+}
+namespace和class不同,前者可以跨越多个源代码文件而后者不能.
+将书签相关便利函数声明于一个头文件,将cookie相关便利函数声明于另一个头文件,再将打印相关便利函数声明于第三个头文件,依次类推.
+
+namespace WebBrowserStuff
+{
+	class WebBrowser{...};//核心技能,几乎所有客户都需要的non-member函数
+}
+
+namespace WebBrowserStuff
+{
+//	与书签相关的便利函数
+}
+
+namespace WebBrowserStuff
+{
+//	与cookie相关的便利函数
+}
+
+...
+这正是C++标准程序库的组织方式.将所有便利函数放在多个头文件内但是隶属于同一个命名空间,意味着客户可以秦松扩展这一组便利函数.它们需要做的就是添加更多的non-member non-friend函数到此命名空间.
+
+
 
 
 
