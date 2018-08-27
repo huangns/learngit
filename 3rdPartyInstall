@@ -1,4 +1,10 @@
-#Opencv:
-http://www.cnblogs.com/simplelovecs/p/5156458.html
+#Opencv 3.1 :
+http://www.cnblogs.com/simplelovecs/p/5156458.html 
+(注:使用 wget https://github.com/Itseez/opencv/archive/3.1.0.zip,不知道使用git clone git://github.com/Itseez/opencv.git 是否会遇到问题)
+problem
 https://blog.csdn.net/huangkangying/article/details/53406370
 https://raw.githubusercontent.com/Itseez/opencv_3rdparty/81a676001ca8075ada498583e4166079e5744668/ippicv/ippicv_linux_20151201.tgz
+https://blog.csdn.net/sysuwuhongpeng/article/details/45485719
+https://blog.csdn.net/guo_lei_lamant/article/details/81568346
+https://blog.csdn.net/tmosk/article/details/72780531
+
