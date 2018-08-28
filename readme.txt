@@ -87,5 +87,9 @@ in home directory 找到.ssh目录，里面有id_rsa和id_rsa.pub两个文件，
 
 
 
-
+删除远程：
+1.查看远程分支：git branch -ｒ
+2.git rm --cached -r useless
+git commit -m "remove directory from remote repository"//一定要commit
+git push
 
