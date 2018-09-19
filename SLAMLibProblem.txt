@@ -1,0 +1,11 @@
+1.Sophus
+常规做法:
+1.1 # sophus
+find_package( Sophus REQUIRED )
+include_directories( ${Sophus_INCLUDE_DIRS} )
+target_link_libraries(XXX(可执行文件名) ${Sophus_LIBRARIES})
+出现undefined reference to "Sophus::SO3::SO3..."之类的问题
+
+include_directories("/usr/local/include/sophus")
+target_link_libraries(XXX(可执行文件名) "/usr/local/lib/libSophus.so")
+
