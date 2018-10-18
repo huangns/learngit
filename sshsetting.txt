@@ -1,0 +1,24 @@
+1.sudo apt-get update
+2.install ssh server: 
+sudo apt-get install openssh-server
+input "y".
+3.
+sudo ps -e |grep ssh
+sudo service ssh start
+sudo service ssh stop
+
+4.
+sudo gedit /etc/ssh/sshd_config
+#PermitRootLogin without-password
+add:
+PermitRootLogin yes
+5.sudo ifconfig, to see ip address.
+inet addr:********
+6.putty download.
+install->open.
+set Host Name.
+set saved Sessions.
+:click ubuntu 14.04->click save->open.
+
+Done!
+
