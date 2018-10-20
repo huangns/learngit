@@ -1,0 +1,8 @@
+std::thread::hardware_concurrency();
+如果无法获取到信息也会返回0.
+如果只是利用多线程去计算简单的累加和，在数据量较小的时候，多线程会优于单线程，但是在数据量比较大的时候（如一百万），单线程优于多线程，所以多线程可能比较适合执行复杂一点的任务，只是计算累加并不占优势。
+advance迭代器就是将迭代器it，移动n位。如果it是随机访问迭代器，那么函数进行1次运算符计算操作，否则函数将对迭代器进行n次迭代计算操作。注意如果移动5次，则输出的是第6个元素而不是第五个元素。
+std::list<int>::iterator it=mylist.begin();
+std::advance(it,5);//it=it+5是错误的，因为list不是顺序存储结构。
+unsigned long const length=std::distance(first,last);//数列的长度，first + n  = last,n可能为负
+result=std::accumulate(first,last,result);//区间[),第三个参数为累加的初值
