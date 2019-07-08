@@ -93,3 +93,22 @@ in home directory 找到.ssh目录，里面有id_rsa和id_rsa.pub两个文件，
 git commit -m "remove directory from remote repository"//一定要commit
 git push
 
+
+设置本地邮箱：
+https://www.cnblogs.com/wyhlightstar/p/6283517.html
+
+查看：
+$ git config user.name
+$ git config user.email
+配置（加引号）：
+$ git config --global user.name "xxx"
+$ git config --global user.email "xxx"
+
+ ssh-keygen -t ed25519 -C "email@example.com"
+ Enter
+ Enter
+ Enter
+ 
+ 复制，profile settings
+ ssh -T git@gitlab.com （git@xxxxx自己的gitlab网址）
+ 
